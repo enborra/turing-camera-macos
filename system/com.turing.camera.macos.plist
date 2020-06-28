@@ -11,6 +11,11 @@
 	</dict>
 	<key>Label</key>
 	<string>com.turing.camera.macos</string>
+	<key>EnvirometVariables</key>
+	<dict>
+		<key>PYTHONPATH</key>
+		<string>/usr/local/bin/python3</string>
+	</dict>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
