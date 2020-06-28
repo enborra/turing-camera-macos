@@ -1,1 +1,1 @@
-from core_service import CoreService
+from .core_service import CoreService

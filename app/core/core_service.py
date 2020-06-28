@@ -9,13 +9,8 @@ import time
 import io
 from PIL import Image
 import base64
-import cStringIO
-
-
-try:
-    from picamera import PiCamera
-except Exception:
-    pass
+from io import StringIO
+import cv2
 
 
 class CoreService(object):
@@ -29,7 +24,7 @@ class CoreService(object):
     _camera = None
 
     _system_channel = '/system'
-    _data_channel = '/camera/rpi'
+    _data_channel = '/camera/macos'
 
 
     def __init__(self):
@@ -38,7 +33,7 @@ class CoreService(object):
 
     def start(self):
         self._comm_client = mqtt.Client(
-            client_id="service_camera_rpi",
+            client_id="service_camera_macos",
             clean_session=True
         )
 
@@ -54,67 +49,62 @@ class CoreService(object):
         self._thread_comms.start()
 
         try:
-            self._camera = PiCamera()
-            # self._camera.iso = 100
-            # sleep(2) # give lens time to adjust
-            # self._camera.shutter_speed = self._camera.exposure_speed
-            # self._camera.shutter_speed = 100000
-            # self._camera.exposure_mode = 'off'
-            # g = self._camera.awb_gains
-            # self._camera.awb_mode = 'off'
-            # self.awb_gains = g
-
-            PiCamera.CAPTURE_TIMEOUT = 10
+            pass
 
         except Exception as e:
             self._camera = None
             print(e)
 
+        # define a video capture object
+        self._camera = cv2.VideoCapture(0)
+
         while True:
             if self._camera:
-                print("[CAMERA-RPI] Starting filestream.")
-
-                # Capture raw camera image and create a PIL image object
+                print("[CAMERA-MACOS] Starting filestream.")
 
                 stream = io.BytesIO()
                 image = None
                 img_str = None
-                buffer = None
+                buf = None
 
-                print("[CAMERA-RPI] Taking a photo..")
+                print("[CAMERA-MACOS] Taking a photo..")
 
                 try:
-                    # self._camera.start_preview()
                     time.sleep(2)
-                    self._camera.capture(stream, format='jpeg')
 
-                    stream.seek(0)
-                    image = Image.open(stream)
+                    # Capture raw camera image and create a PIL image object
+                    ret, frame = self._camera.read()
+                    is_success, buffer = cv2.imencode(".jpg", frame)
+                    stream = io.BytesIO(buffer)
 
-                    buffer = cStringIO.StringIO()
-                    image.save(buffer, format='JPEG')
-                    img_str = base64.b64encode(buffer.getvalue())
+                    img_str = base64.b64encode(buffer)
 
                 except Exception as e:
-                    print("[TURING-CAMERA-RPI] Had an issue capturing a photo: %s" % e)
+                    print("[TURING-CAMERA-MACOS] Had an issue capturing a photo: %s" % e)
 
                 try:
                     self.output(img_str, self._data_channel)
 
                 except Exception as e:
-                    print("[TURING-CAMERA-RPI] Couldn't publish to comms")
+                    print("[TURING-CAMERA-MACOS] Couldn't publish to comms")
 
             else:
-                print("[CAMERA-RPI] Skipping taking a photo. Not a supported OS.")
+                print("[CAMERA-MACOS] Skipping taking a photo. Not a supported OS.")
 
             time.sleep(10)
 
             if self._kill_now:
-                self._camera.close()
+                # After the loop release the cap object
+                self._camera.release()
+                # Destroy all the windows
+                cv2.destroyAllWindows()
+
+
+                # self._camera.close()
                 break
 
     def _on_connect(self, client, userdata, flags, rc):
-        self.output('{"sender": "service_camera_rpi", "message": "Connected to GrandCentral."}')
+        self.output('{"sender": "service_camera_macos", "message": "Connected to GrandCentral."}')
 
     def _on_message(self, client, userdata, msg):
         msg_struct = None
@@ -129,7 +119,7 @@ class CoreService(object):
         pass
 
     def _on_subscribe(self, mosq, obj, mid, granted_qos):
-        self.output('{"sender": "service_camera_rpi", "message": "Successfully subscribed to GrandCentral /system channel."}')
+        self.output('{"sender": "service_camera_macos", "message": "Successfully subscribed to GrandCentral /system channel."}')
 
     def _on_log(self, mosq, obj, level, string):
         pass
@@ -144,7 +134,7 @@ class CoreService(object):
                 60
             )
 
-        except Exception, e:
+        except Exception as e:
             print('Could not connect to local GranCentral. Retry in one second.')
 
             time.sleep(1)

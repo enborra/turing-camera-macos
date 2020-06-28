@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH_BIN_PYTHON="/usr/bin/python"
+PATH_BIN_PYTHON=$(which python3)
 PATH_BIN_PIP="$(which pip)"
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
