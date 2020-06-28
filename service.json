@@ -1,0 +1,8 @@
+{
+    "service-name": "com.turing.camera.macos",
+
+    "install": {
+        "osx": "com.turing.camera.macos.plist",
+        "raspberry_pi": "com.turing.camera.macos.service"
+    }
+}
